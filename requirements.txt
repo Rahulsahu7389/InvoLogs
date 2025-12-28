@@ -1,0 +1,12 @@
+flask==3.0.0
+flask-cors==4.0.0
+python-dotenv==1.0.0
+groq==0.4.2
+pillow>=11.0.0
+pymongo==4.6.0
+python-dateutil==2.8.2
+requests==2.31.0
+gunicorn==21.2.0
+dateparser==1.1.8
+num2words==0.5.12
+regex==2025.11.3
