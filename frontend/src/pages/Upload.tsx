@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -34,22 +35,72 @@ const UploadPage: React.FC = () => {
 
   // SINGLE UPLOAD
   const onDropSingle = useCallback(async (files: File[]) => {
-    if (!files.length) return;
-    const file = files[0];
-    setIsProcessing(true);
+  if (!files.length) return;
+  const file = files[0];
+  setIsProcessing(true);
 
-    try {
-      const { invoiceId } = await mockApi.uploadDocument(file);
-      const data = await mockApi.extractInvoiceData(invoiceId, file.name);
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
 
-      setExtractedData({ ...data, invoiceId, fileName: file.name });
+    // 🔐 Get Auth Info
+    // const token = localStorage.getItem("token");    // e.g. JWT or dummy JSON string
+    // const userId = localStorage.getItem("userId");  // only if separately stored
+    const token = JSON.stringify({ userId: "myuserid" });
+
+    if (!token) {
+      toast.error("No auth token found. Please login.");
       setIsProcessing(false);
-      toast.success('Extraction complete!');
-    } catch {
-      toast.error('Failed to process document');
-      setIsProcessing(false);
+      return;
     }
-  }, []);
+
+    // 📡 Send request
+    const res = await axios.post(
+      "http://localhost:5000/api/extract",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,   // 👈 MOST IMPORTANT
+        },
+        // params: { userId }  // optional fallback (not required if JWT contains user)
+      }
+    );
+
+    const response = res.data;
+    console.log("🔎 Backend Response:", response);
+
+    if (!response.success) {
+      toast.error(response.error || "Extraction failed");
+      return;
+    }
+
+    // 📌 Convert backend fields for UI display
+    const formattedFields = Object.entries(response.canonical_data).map(
+      ([key, value]: any) => ({
+        key,
+        value,
+        confidence: response.confidence?.[key] ?? 90,
+      })
+    );
+
+    setExtractedData({
+      invoiceId: response.invoice_id,
+      fields: formattedFields,
+      overallConfidence: response.confidence?.overall ?? 88,
+      fileName: file.name,
+    });
+
+    toast.success("🚀 Extraction complete!");
+
+  } catch (error: any) {
+    console.error("❌ Upload/Extraction failed:", error);
+    toast.error(error?.response?.data?.error || "Server error");
+  } finally {
+    setIsProcessing(false);
+  }
+}, []);
+
 
   const { getRootProps: getSingleRootProps, getInputProps: getSingleInputProps, isDragActive: isSingleActive } = useDropzone({
     onDrop: onDropSingle,
@@ -194,19 +245,28 @@ const UploadPage: React.FC = () => {
               </Card>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {extractedData.fields.map((field: any) => (
-                  <div
-                    key={field.key}
-                    className="bg-card border border-border rounded-xl p-5 hover:border-emerald-500/40 transition"
-                  >
-                    <div className="text-xs uppercase text-muted-foreground font-bold flex justify-between">
-                      {field.key}
-                      <span className="text-emerald-500">● {field.confidence}%</span>
-                    </div>
-                    <div className="font-medium">{field.value}</div>
-                  </div>
-                ))}
-              </div>
+  {extractedData.fields.map((field: any) => (
+    <div
+      key={field.key}
+      className="bg-card border border-border rounded-xl p-5 hover:border-emerald-500/40 transition"
+    >
+      <div className="text-xs uppercase text-muted-foreground font-bold flex justify-between">
+        {field.key}
+        <span className="text-emerald-500">● {field.confidence}%</span>
+      </div>
+
+      {/* 🔥 FIX FOR OBJECT VALUES */}
+      <div className="font-medium whitespace-pre-wrap">
+        {typeof field.value === "object" && field.value !== null
+          ? Object.entries(field.value)
+              .map(([k, v]) => `${k}: ${v ?? "N/A"}`)
+              .join("\n")
+          : field.value}
+      </div>
+    </div>
+  ))}
+</div>
+
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <Button onClick={() => navigate('/history')} className="flex-1 bg-emerald-500 text-white font-black h-12 rounded-xl">
