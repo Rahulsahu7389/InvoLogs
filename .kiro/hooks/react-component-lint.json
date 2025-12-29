@@ -1,0 +1,13 @@
+{
+  "name": "React Component Linter",
+  "description": "Auto-lints React components on save to catch common issues",
+  "enabled": true,
+  "trigger": {
+    "type": "onSave",
+    "filePattern": "frontend/**/*.{jsx,tsx,js,ts}"
+  },
+  "action": {
+    "type": "sendMessage",
+    "message": "A React component was just saved. Please check for common issues:\n1. Are all imports used?\n2. Are there any missing dependencies in useEffect hooks?\n3. Are prop types defined (if using TypeScript)?\n4. Are there any console.log statements that should be removed?\n5. Is the component following React best practices (proper hooks usage, no inline functions in JSX if performance-critical)?\n\nIf you find issues, suggest fixes."
+  }
+}
