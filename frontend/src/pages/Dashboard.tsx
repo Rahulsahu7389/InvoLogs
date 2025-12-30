@@ -1,5 +1,4 @@
 import { useAuth } from "@/hooks/useAuth";
-import { useAuth } from "@/hooks/useAuth";
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";

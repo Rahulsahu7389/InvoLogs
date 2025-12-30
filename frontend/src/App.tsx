@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { useThemeStore } from "@/store/themeStore";
 
-import Landing from "@/pages/Landing";
+// import Landing from "@/pages/Landing";
 
 import Landing from "@/pages/Landing";
 import Auth from "@/pages/Auth";
