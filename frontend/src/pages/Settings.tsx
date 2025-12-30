@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState,useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, 
@@ -28,6 +28,17 @@ export default function Settings() {
   const [confidenceWarning, setConfidenceWarning] = useState([70]);
   const [duplicateDetection, setDuplicateDetection] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [storedName, setStoredName] = useState("your name");
+  const [storedEmail, setStoredEmail] = useState("your gmail");
+
+  useEffect(() => {
+    const name = localStorage.getItem("username");
+    const email = localStorage.getItem("email");
+    if (name) setStoredName(name);
+    if (email) setStoredEmail(email);
+  }, []);
+  console.log("Stored Name:", storedName);
+  console.log("Stored Email:", storedEmail);
 
   const handleSave = () => {
     toast.success('Settings saved successfully!');
@@ -80,26 +91,26 @@ export default function Settings() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue="not entered" />
+                    <Label htmlFor="firstName">Name</Label>
+                    <Input id="firstName" value={storedName} disabled />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="lastName">Last Name</Label>
                     <Input id="lastName" defaultValue="not entered" />
-                  </div>
+                  </div> */}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="your gmail" />
+                  <Input id="email" type="email" value={storedEmail}  disabled />
                 </div>
                 {/* <div className="space-y-2">
                   <Label htmlFor="company">Company</Label>
                   <Input id="company" defaultValue="HackXios 2K25" />
                 </div> */}
-                <Button onClick={handleSave}>
+                {/* <Button onClick={handleSave}>
                   <Save className="w-4 h-4" />
                   Save Changes
-                </Button>
+                </Button> */}
               </CardContent>
             </Card>
           </motion.div>
