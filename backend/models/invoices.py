@@ -59,10 +59,7 @@ class InvoiceModel:
                 "extracted_data": extracted_data,
                 "canonical_data": canonical_data,
                 "confidence_scores": confidence_scores,
-                "status": status,
-                "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow(),
-                "original_filename": original_filename,
                 "approved_by": None,
                 "approved_at": None,
                 "notes": "",
@@ -92,7 +89,6 @@ class InvoiceModel:
         except Exception as e:
             logger.error(f"Failed to save extraction: {str(e)}")
             raise
-
 
     def get_invoice(self, invoice_id: str) -> Optional[Dict[str, Any]]:
         """Fetch single invoice by ID"""

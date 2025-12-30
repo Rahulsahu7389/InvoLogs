@@ -1,0 +1,13 @@
+{
+  "name": "Python Dependency Check",
+  "description": "Checks if requirements.txt needs updating when Python files are modified",
+  "enabled": true,
+  "trigger": {
+    "type": "onSave",
+    "filePattern": "**/*.py"
+  },
+  "action": {
+    "type": "sendMessage",
+    "message": "A Python file was just saved. Please check if any new imports were added that require updating requirements.txt. If new libraries are imported (e.g., 'import groq', 'import cv2'), remind me to add them to backend/requirements.txt."
+  }
+}
