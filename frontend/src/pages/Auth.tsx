@@ -74,6 +74,7 @@ const Auth = () => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           localStorage.setItem("username", userData.name);
+          localStorage.setItem("email", userData.email);
         }
 
         toast.success("Welcome back!");
@@ -95,6 +96,7 @@ const Auth = () => {
 
         // 📌 Store name in LocalStorage
         localStorage.setItem("username", formData.name);
+        localStorage.setItem("email", formData.email);
 
         toast.success("Account created successfully!");
       }
