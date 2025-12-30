@@ -41,12 +41,13 @@ class InvoiceModel:
 
     def save_extraction(
         self,
+        user_id: str,                          # 👈 FIXED NAME
         extracted_data: Dict[str, Any],
         canonical_data: Dict[str, Any],
         confidence_scores: Dict[str, Any],
         status: str,
         original_filename: str = None,
-        metadata: Dict[str, Any] = None  # NEW: Added metadata parameter
+        metadata: Dict[str, Any] = None
     ) -> str:
         """
         Save extraction result to MongoDB
@@ -54,36 +55,35 @@ class InvoiceModel:
         """
         try:
             invoice_doc = {
+                "userId": user_id,                # 👈 NOW IT MATCHES THE ARG
                 "extracted_data": extracted_data,
                 "canonical_data": canonical_data,
                 "confidence_scores": confidence_scores,
-                "status": status,
-                "created_at": datetime.utcnow(),
                 "updated_at": datetime.utcnow(),
-                "original_filename": original_filename,
                 "approved_by": None,
                 "approved_at": None,
                 "notes": "",
                 "corrections": {},
-                "api_metadata": metadata or {}  # NEW: Store usage/token data
+                "api_metadata": metadata or {}
             }
 
             result = self.db.invoices.insert_one(invoice_doc)
             invoice_id = str(result.inserted_id)
 
-            # Log to audit trail
+            # Audit log
             self.db.audit_log.insert_one({
                 "invoice_id": ObjectId(invoice_id),
+                "userId": user_id,                # 👈 ADD USER IN AUDIT LOG
                 "action": "extracted",
                 "timestamp": datetime.utcnow(),
                 "changes": {
                     "status": status,
                     "confidence": confidence_scores.get('overall_confidence'),
-                    "tokens_used": (metadata or {}).get("usage", {}).get("total_tokens") # Log tokens in audit
+                    "tokens_used": (metadata or {}).get("usage", {}).get("total_tokens")
                 }
             })
 
-            logger.info(f"Invoice saved: {invoice_id}")
+            logger.info(f"Invoice saved for user {user_id}: {invoice_id}")
             return invoice_id
 
         except Exception as e:

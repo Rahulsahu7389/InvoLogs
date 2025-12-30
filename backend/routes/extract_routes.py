@@ -5,6 +5,10 @@ from datetime import datetime
 from uuid import uuid4
 from flask import Blueprint, request, jsonify
 from config import Config
+<<<<<<< HEAD
+=======
+import jwt
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
 from services.groq_extractor import GroqExtractor
 from services.canonicalizer import DataCanonicalizer
 from services.confidence_scorer import ConfidenceScorer
@@ -37,11 +41,63 @@ def health():
         "timestamp": datetime.utcnow().isoformat()
     }), 200
 
+<<<<<<< HEAD
 @extract_bp.route('/extract', methods=['POST'])
 def extract_invoice():
     """
     Extract invoice data from uploaded image/PDF
     """
+=======
+from flask import request, jsonify
+import jwt, os, json
+from uuid import uuid4
+from datetime import datetime
+
+@extract_bp.route('/extract', methods=['POST'])
+def extract_invoice():
+    """
+    Extract invoice data AND store with userId (from Bearer token)
+    """
+
+    # ==========================================================
+    # 1️⃣ GET AND VERIFY USER FROM BEARER TOKEN
+    # ==========================================================
+    #for actual token
+    # auth_header = request.headers.get("Authorization", "")
+    # token = auth_header.replace("Bearer ", "").strip()
+
+    # if not token:
+    #     return jsonify({"error": "Missing auth token"}), 401
+
+    # try:
+    #     decoded = decoded = jwt.decode(
+    #         token,
+    #         Config.JWT_SECRET,
+    #         algorithms=["HS256"]
+    #     )
+    #     user_id = decoded.get("userId")
+    #     if not user_id:
+    #         return jsonify({"error": "Token invalid: user missing"}), 401
+        #   except Exception as e:
+        #     return jsonify({"error": f"Invalid or expired token: {str(e)}"}), 401
+
+    #dummy token
+    auth_header = request.headers.get("Authorization", "")
+    raw_token = auth_header.replace("Bearer ", "").strip()
+
+    try:
+        # token is JSON not JWT
+        data = json.loads(raw_token)
+        user_id = data.get("userId")
+    except:
+        return jsonify({"error": "Invalid test token format"}), 401
+
+
+    # print(f"user id is: {user_id}")
+    # ==========================================================
+    # 2️⃣ SAFETY CHECK: FILE VALIDATION
+    # ==========================================================
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -49,7 +105,10 @@ def extract_invoice():
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
 
+<<<<<<< HEAD
     # Get file size safely
+=======
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
     file.seek(0, os.SEEK_END)
     file_length = file.tell()
     file.seek(0)
@@ -57,6 +116,7 @@ def extract_invoice():
     if file_length > Config.MAX_FILE_SIZE:
         return jsonify({"error": f"File too large ({file_length} bytes)"}), 413
 
+<<<<<<< HEAD
     allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.pdf'}
     file_ext = os.path.splitext(file.filename)[1].lower()
     
@@ -89,27 +149,65 @@ def extract_invoice():
 
         # Step 2: Extract with Groq API
         logger.info("Calling Groq API for extraction...")
+=======
+    file_ext = os.path.splitext(file.filename)[1].lower()
+    file_bytes = file.read()
+    file.seek(0)
+
+    # Only check quality for non-PDF
+    if file_ext != '.pdf':
+        is_bad, reason, score = check_image_quality(file_bytes, blur_threshold=450.0, contrast_threshold=35.0)
+        if is_bad:
+            return jsonify({
+                "success": False,
+                "error": f"Quality Check Failed: {reason}",
+                "quality_score": round(score, 2)
+            }), 400
+
+
+    # ==========================================================
+    # 3️⃣ EXTRACT USING GROQ API
+    # ==========================================================
+    try:
+        image_base64 = groq_extractor.encode_image(file)
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
         raw_response = groq_extractor.extract(image_base64)
 
         if "error" in raw_response:
             return jsonify({"success": False, "error": raw_response['error']}), 500
 
+<<<<<<< HEAD
         # Handle usage data separately
         usage_data = raw_response.pop("_usage", {})
         extracted_data = raw_response 
 
         # Step 3: Validate structure
+=======
+        usage_data = raw_response.pop("_usage", {})
+        extracted_data = raw_response
+
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
         is_valid_struct, error_msg = groq_extractor.validate_response_structure(extracted_data)
         if not is_valid_struct:
             return jsonify({"success": False, "error": f"Structure: {error_msg}"}), 500
 
+<<<<<<< HEAD
         # Step 4-6: Processing Pipeline
+=======
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
         canonical_data = canonicalizer.canonicalize_invoice(extracted_data)
         is_valid_content, val_error = InvoiceValidator.validate_invoice(canonical_data)
         confidence_scores = confidence_scorer.calculate_confidence(canonical_data)
         status = confidence_scores.get('status', 'needs_review')
 
+<<<<<<< HEAD
         # Step 7: ID generation and MongoDB save
+=======
+
+        # ==========================================================
+        # 4️⃣ SAVE INVOICE WITH userId TO MONGODB
+        # ==========================================================
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
         invoice_id = str(uuid4())
         if invoice_model:
             invoice_id = invoice_model.save_extraction(
@@ -118,6 +216,7 @@ def extract_invoice():
                 confidence_scores=confidence_scores,
                 status=status,
                 original_filename=file.filename,
+<<<<<<< HEAD
                 metadata={"usage": usage_data}
             )
 
@@ -153,6 +252,35 @@ def extract_invoice():
         logger.error(f"Unexpected error: {str(e)}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
+=======
+                metadata={"usage": usage_data},
+                user_id=user_id  # 👈💥 IMPORTANT LINE
+            )
+
+
+        # ==========================================================
+        # 5️⃣ RETURN FULL RESPONSE
+        # ==========================================================
+        return jsonify({
+            "success": True,
+            "invoice_id": invoice_id,
+            "user_id": user_id,
+            "extracted_data": extracted_data,
+            "canonical_data": canonical_data,
+            "confidence": confidence_scores,
+            "status": status,
+            "valid": is_valid_content,
+            "error": val_error,
+            "usage_stats": usage_data,
+            "timestamp": datetime.utcnow().isoformat()
+        }), 200
+
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
 # ========== DASHBOARD & REVIEW ROUTES ==========
 
 @extract_bp.route('/review-queue', methods=['GET'])
@@ -180,4 +308,51 @@ def get_analytics():
     if not invoice_model:
         return jsonify({"error": "Database not initialized"}), 500
     analytics = invoice_model.get_analytics()
+<<<<<<< HEAD
     return jsonify(analytics), 200
+=======
+    return jsonify(analytics), 200
+
+@extract_bp.route('/invoices', methods=['GET'])
+def get_invoice_history():
+    """
+    Fetch invoice history for logged-in user
+    """
+    if not invoice_model:
+        return jsonify({"error": "Database not initialized"}), 500
+
+    # ===== TEMP AUTH (same as extract) =====
+    auth_header = request.headers.get("Authorization", "")
+    raw_token = auth_header.replace("Bearer ", "").strip()
+
+    try:
+        data = json.loads(raw_token)
+        user_id = data.get("userId")
+    except:
+        return jsonify({"error": "Invalid test token format"}), 401
+
+    status = request.args.get("status")
+    limit = int(request.args.get("limit", 20))
+    skip = int(request.args.get("skip", 0))
+
+    query = {"userId": user_id}
+    if status:
+        query["status"] = status
+
+    invoices = list(
+        invoice_model.db.invoices
+        .find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+    )
+
+    for inv in invoices:
+        inv["_id"] = str(inv["_id"])
+
+    return jsonify({
+        "success": True,
+        "count": len(invoices),
+        "data": invoices
+    }), 200
+>>>>>>> 3d71827076a3f84c7ee5ab935d066c5637f069c8
